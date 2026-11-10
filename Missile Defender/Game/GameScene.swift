@@ -197,9 +197,10 @@ final class GameScene: SKScene {
     private func gameOver() {
         state = .gameOver
         removeAction(forKey: "nextWave")
+        let rank = score.recordScore()
         hud.setHigh(score.high)
         hud.setPauseButtonVisible(false)
-        showGameOverOverlay()
+        showGameOverOverlay(rank: rank)
     }
 
     private func togglePause() {
@@ -422,16 +423,29 @@ final class GameScene: SKScene {
         hud.setWave(1)
         hud.setPaused(false)
         hud.setPauseButtonVisible(false)
-        showOverlay([
-            .init(text: "MISSILE DEFENDER", size: 34, color: Palette.city),
+
+        var lines: [OverlayLine] = [
+            .init(text: "MISSILE DEFENDER", size: 30, color: Palette.city),
+            .init(text: "", size: 6, color: Palette.hud),
+            .init(text: "THEY WILL KEEP COMING.", size: 13, color: Palette.hud),
+            .init(text: "YOU CANNOT WIN — ONLY DELAY THE END.", size: 13, color: Palette.hud),
+            .init(text: "HOLD THE LINE AS LONG AS YOU CAN.", size: 13, color: Palette.hud),
             .init(text: "", size: 10, color: Palette.hud),
-            .init(text: "TAP THE SKY TO INTERCEPT", size: 15, color: Palette.hud),
-            .init(text: "DEFEND YOUR CITIES", size: 15, color: Palette.hud),
-            .init(text: "", size: 14, color: Palette.hud),
-            .init(text: "TAP TO START", size: 18, color: Palette.target),
-            .init(text: "", size: 20, color: Palette.hud),
-            .init(text: "HIGH SCORE  " + String(format: "%06d", score.high), size: 13, color: Palette.hudDim)
-        ])
+            .init(text: "TAP TO HOLD THE LINE", size: 17, color: Palette.target),
+            .init(text: "", size: 12, color: Palette.hud),
+            .init(text: "— FINAL STANDS —", size: 13, color: Palette.hudDim)
+        ]
+
+        if score.bestScores.isEmpty {
+            lines.append(.init(text: "NO ONE HAS STOOD YET", size: 13, color: Palette.hudDim))
+        } else {
+            for (i, value) in score.bestScores.enumerated() {
+                let row = "\(i + 1).  " + String(format: "%06d", value)
+                lines.append(.init(text: row, size: 15, color: i == 0 ? Palette.hud : Palette.hudDim))
+            }
+        }
+
+        showOverlay(lines)
     }
 
     private func showWaveClearedOverlay(unusedABMs: Int, savedCities: Int, bonus: Int) {
@@ -446,14 +460,24 @@ final class GameScene: SKScene {
         ])
     }
 
-    private func showGameOverOverlay() {
-        let isHigh = score.score >= score.high && score.score > 0
+    private func showGameOverOverlay(rank: Int?) {
+        let verdict: (String, SKColor)
+        switch rank {
+        case 1:
+            verdict = ("THE LONGEST ANYONE HAS EVER STOOD.", Palette.target)
+        case .some(let r):
+            verdict = ("A STAND WORTH REMEMBERING · #\(r)", Palette.city)
+        case nil:
+            verdict = ("THE CITIES ARE ASH. AS THEY ALWAYS ARE.", Palette.hudDim)
+        }
+
         showOverlay([
             .init(text: "THE END", size: 40, color: Palette.incoming),
-            .init(text: "", size: 12, color: Palette.hud),
+            .init(text: "", size: 8, color: Palette.hud),
+            .init(text: "YOU REACHED WAVE \(wave.wave)", size: 15, color: Palette.hud),
             .init(text: "SCORE  " + String(format: "%06d", score.score), size: 18, color: Palette.hud),
-            .init(text: isHigh ? "NEW HIGH SCORE!" : "HIGH  " + String(format: "%06d", score.high),
-                  size: 15, color: isHigh ? Palette.target : Palette.hudDim),
+            .init(text: "", size: 8, color: Palette.hud),
+            .init(text: verdict.0, size: 13, color: verdict.1),
             .init(text: "", size: 16, color: Palette.hud),
             .init(text: "TAP TO CONTINUE", size: 14, color: Palette.hudDim)
         ])
